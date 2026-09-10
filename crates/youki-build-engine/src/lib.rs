@@ -1151,12 +1151,15 @@ fn dir_has_files(dir: &Path) -> bool {
 fn set_executable_recursive(dir: &Path) -> Result<()> {
     #[cfg(unix)]
 #[cfg(unix)]
+#[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
     for entry in walkdir::WalkDir::new(dir).into_iter().filter_map(|e| e.ok()) {
         if entry.file_type().is_file() {
             let mut perms = fs::metadata(entry.path())?.permissions();
-            let mode = perms.mode();
-            perms.set_mode(mode | 0o111);
+#[cfg(unix)]
+let mode = perms.mode();
+#[cfg(unix)]
+perms.set_mode(mode | 0o111);
             fs::set_permissions(entry.path(), perms)?;
         }
     }

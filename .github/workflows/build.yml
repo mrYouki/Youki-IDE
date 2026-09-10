@@ -53,12 +53,12 @@ jobs:
           cargo binstall --no-confirm cross
 
       - name: Build Binary with Cross
-        run: |
-          if [[ "${{ matrix.target }}" == *"android"* ]]; then
-            CARGO_TARGET_$(echo ${{ matrix.target }} | tr '[:lower:]-' '[:upper:]_')_RUSTFLAGS="-C link-arg=-lc" cross build --release --target ${{ matrix.target }}
-          else
-            cross build --release --target ${{ matrix.target }}
-          fi
+        env:
+          CARGO_TARGET_AARCH64_LINUX_ANDROID_RUSTFLAGS: "-C link-arg=-lc"
+          CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_RUSTFLAGS: "-C link-arg=-lc"
+          CARGO_TARGET_X86_64_LINUX_ANDROID_RUSTFLAGS: "-C link-arg=-lc"
+          CARGO_TARGET_I686_LINUX_ANDROID_RUSTFLAGS: "-C link-arg=-lc"
+        run: cross build --release --target ${{ matrix.target }}
 
       - name: Prepare Binary Output
         shell: bash
