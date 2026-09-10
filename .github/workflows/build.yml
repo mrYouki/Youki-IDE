@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   build-cross:
     name: Build for ${{ matrix.target }}
@@ -50,6 +53,8 @@ jobs:
           cargo binstall --no-confirm cross
 
       - name: Build Binary with Cross
+        env:
+          RUSTFLAGS: "-C link-arg=-lc"
         run: cross build --release --target ${{ matrix.target }}
 
       - name: Prepare Binary Output
@@ -63,7 +68,7 @@ jobs:
           fi
 
       - name: Upload Artifacts to Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: ${{ matrix.name }}
         env:
