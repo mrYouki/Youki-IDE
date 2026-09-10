@@ -1,0 +1,11 @@
+[target.aarch64-linux-android]
+pre-build = ["ln -sf $(find /android-ndk -name libgcc.a | head -n 1) /usr/local/lib/libunwind.a || true"]
+
+[target.armv7-linux-androideabi]
+pre-build = ["ln -sf $(find /android-ndk -name libgcc.a | head -n 1) /usr/local/lib/libunwind.a || true"]
+
+[target.x86_64-linux-android]
+pre-build = ["ln -sf $(find /android-ndk -name libgcc.a | head -n 1) /usr/local/lib/libunwind.a || true"]
+
+[target.i686-linux-android]
+pre-build = ["ln -sf $(find /android-ndk -name libgcc.a | head -n 1) /usr/local/lib/libunwind.a || true"]
