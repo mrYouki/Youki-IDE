@@ -1,0 +1,20 @@
+[package]
+name = "youki-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "youki"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true }
+console = { workspace = true }
+indicatif = { workspace = true }
+serde_json = { workspace = true }
+youki-build-engine = { path = "../youki-build-engine" }
+youki-sdk-manager = { path = "../youki-sdk-manager" }
+youki-toolchain = { path = "../youki-toolchain" }
+youki-manifest = { path = "../youki-manifest" }

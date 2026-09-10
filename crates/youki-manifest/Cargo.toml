@@ -1,0 +1,11 @@
+[package]
+name = "youki-manifest"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+youki-toolchain = { path = "../youki-toolchain" }

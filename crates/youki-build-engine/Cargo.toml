@@ -1,0 +1,17 @@
+[package]
+name = "youki-build-engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+zip = { workspace = true }
+walkdir = { workspace = true }
+sha2 = { workspace = true }
+youki-manifest = { path = "../youki-manifest" }
+youki-toolchain = { path = "../youki-toolchain" }
+
