@@ -73,10 +73,10 @@ pub fn install_missing(
     for component in missing {
         match component {
             RequiredComponent::Platform(api) => {
-                mgr.install_platform(*api, |done, total| on_progress(component, done, total))?;
+                mgr.install_platform(*api, None, |done, total| on_progress(component, done, total))?;
             }
             RequiredComponent::BuildTools(version) => {
-                mgr.install_build_tools(version, |done, total| {
+                mgr.install_build_tools(version, None, |done, total| {
                     on_progress(component, done, total)
                 })?;
             }

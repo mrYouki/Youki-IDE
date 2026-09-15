@@ -17,12 +17,25 @@ pub enum SdkAction {
         api_level: u32,
         #[arg(long)]
         android_home: Option<PathBuf>,
+        /// Exact revision number to use (the "N" in "platform-<api>_r0N.zip"),
+        /// e.g. --version 6. Skips automatic probing — use this if the
+        /// automatic lookup reports it can't find the archive, after
+        /// confirming the real revision at
+        /// https://dl.google.com/android/repository/repository2-1.xml
+        #[arg(long)]
+        version: Option<String>,
     },
     /// Install build-tools (aapt2, d8, r8, zipalign)
     InstallBuildTools {
         version: String,
         #[arg(long)]
         android_home: Option<PathBuf>,
+        /// Exact version string to substitute when resolving the
+        /// download URL, if it differs from `version` above (rare —
+        /// only needed if Google's real archive uses a different
+        /// string than the build-tools version you're installing under)
+        #[arg(long = "version-override")]
+        version_override: Option<String>,
     },
     /// Install the Android NDK (needed for C++/Rust plugin stages)
     InstallNdk {
@@ -51,25 +64,29 @@ pub fn run(action: SdkAction) -> Result<()> {
             }
             Ok(())
         }
-        SdkAction::InstallPlatform { api_level, android_home } => {
+        SdkAction::InstallPlatform { api_level, android_home, version } => {
             let mgr = SdkManager::new(resolve_home(android_home));
             if mgr.is_platform_installed(api_level) {
                 println!("platform-{api_level} already installed");
                 return Ok(());
             }
             let bar = progress_bar(&format!("Downloading platform-{api_level}"));
-            mgr.install_platform(api_level, |done, total| update_bar(&bar, done, total))?;
+            mgr.install_platform(api_level, version.as_deref(), |done, total| {
+                update_bar(&bar, done, total)
+            })?;
             bar.finish_with_message("done");
             Ok(())
         }
-        SdkAction::InstallBuildTools { version, android_home } => {
+        SdkAction::InstallBuildTools { version, android_home, version_override } => {
             let mgr = SdkManager::new(resolve_home(android_home));
             if mgr.is_build_tools_installed(&version) {
                 println!("build-tools {version} already installed");
                 return Ok(());
             }
             let bar = progress_bar(&format!("Downloading build-tools {version}"));
-            mgr.install_build_tools(&version, |done, total| update_bar(&bar, done, total))?;
+            mgr.install_build_tools(&version, version_override.as_deref(), |done, total| {
+                update_bar(&bar, done, total)
+            })?;
             bar.finish_with_message("done");
             Ok(())
         }

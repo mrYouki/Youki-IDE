@@ -61,8 +61,6 @@ pub fn run(args: NewArgs) -> Result<()> {
   "pluginId": "{package}",
   "displayName": "{name}",
   "version": "1.0.0",
-  "enabled": false,
-  "permissions": [],
   "surface": "CARD_GRID",
   "entry": {{
     "type": "native_fragment",

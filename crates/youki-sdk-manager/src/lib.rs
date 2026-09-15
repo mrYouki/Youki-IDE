@@ -92,9 +92,12 @@ impl SdkManager {
     }
 
     /// Downloads and unpacks a platform's android.jar. `api_level`
-    /// Downloads and unpacks a platform's android.jar. `api_level`
     /// selects the package (e.g. 34 -> "android-34"). Progress is
     /// reported through `on_progress` as (bytes_downloaded, total_bytes).
+    /// `revision_override`, if provided, skips the automatic
+    /// revision-probing in `repository::platform_download_url` and
+    /// uses that exact revision number directly — see `youki sdk
+    /// install-platform --help`.
     ///
     /// IMPORTANT: platform-<N>_r0X.zip extracts into ITS OWN nested
     /// top-level folder (e.g. "android-13/"), not into the destination
@@ -105,12 +108,13 @@ impl SdkManager {
     pub fn install_platform(
         &self,
         api_level: u32,
+        revision_override: Option<&str>,
         mut on_progress: impl FnMut(u64, u64),
     ) -> Result<()> {
         let dest = self.android_home.join(format!("platforms/android-{api_level}"));
         fs::create_dir_all(&dest)?;
 
-        let url = repository::platform_download_url(api_level)?;
+        let url = repository::platform_download_url(api_level, revision_override)?;
         let archive_path = self
             .android_home
             .join(format!("_platform-{api_level}.zip"));
@@ -129,12 +133,16 @@ impl SdkManager {
 
         anyhow::ensure!(
             dest.join("android.jar").exists(),
-            "downloaded platform archive did not contain android.jar (Google may have renamed this release; try `youki sdk install-platform {api_level} --version <exact-r-number>`)"
+            "downloaded platform archive ({url}) did not contain android.jar — the archive's \
+             internal layout may have changed. Please report this."
         );
         Ok(())
     }
 
     /// Downloads and unpacks build-tools (aapt2, d8, r8, zipalign).
+    /// `revision_override`, if provided, is used as the exact version
+    /// string in place of `version` when resolving the download URL —
+    /// see `youki sdk install-build-tools --help`.
     ///
     /// IMPORTANT: build-tools_r<N>-linux.zip also extracts into its own
     /// nested top-level folder named after the Android codename (e.g.
@@ -144,12 +152,13 @@ impl SdkManager {
     pub fn install_build_tools(
         &self,
         version: &str,
+        revision_override: Option<&str>,
         mut on_progress: impl FnMut(u64, u64),
     ) -> Result<()> {
         let dest = self.android_home.join(format!("build-tools/{version}"));
         fs::create_dir_all(&dest)?;
 
-        let url = repository::build_tools_download_url(version)?;
+        let url = repository::build_tools_download_url(version, revision_override)?;
         let archive_path = self
             .android_home
             .join(format!("_build_tools-{version}.zip"));
@@ -171,7 +180,8 @@ impl SdkManager {
 
         anyhow::ensure!(
             dest.join("aapt2").exists(),
-            "downloaded build-tools archive did not contain aapt2 (Google may have renamed this release; try `youki sdk install-build-tools {version} --version <exact-r-number>`)"
+            "downloaded build-tools archive ({url}) did not contain aapt2 — the archive's \
+             internal layout may have changed. Please report this."
         );
         Ok(())
     }
@@ -258,10 +268,40 @@ fn promote_single_nested_dir(extracted_root: &Path, dest: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Resolves the user's home directory for `SdkManager::default_location()`.
+///
+/// FIX: this used to fall back to `"."` (the current working
+/// directory) whenever `$HOME` was unset — which produced a wrong,
+/// invocation-dependent SDK path instead of a real home directory.
+/// Termux itself always sets `$HOME` to
+/// `/data/data/com.termux/files/home` for anything launched from its
+/// own shell, so the normal `$HOME` read below already works there in
+/// the common case; this only changes what happens when `$HOME` is
+/// missing or empty — which does happen for `youki` when it's
+/// launched from certain non-interactive contexts (some `am start`/
+/// cron-style invocations, or a badly configured shell profile) where
+/// Termux's own environment isn't fully inherited.
+///
+/// In that situation, this now checks Termux's fixed, well-known home
+/// path directly — `/data/data/com.termux/files/home` never changes
+/// across devices or Termux versions, since it's determined by
+/// Android's per-package private storage convention, not anything
+/// user-configurable — before finally falling back to the current
+/// directory as a last resort.
 fn dirs_home() -> PathBuf {
-    std::env::var_os("HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from("."))
+    if let Some(home) = std::env::var_os("HOME") {
+        let home = PathBuf::from(home);
+        if !home.as_os_str().is_empty() {
+            return home;
+        }
+    }
+
+    const TERMUX_HOME: &str = "/data/data/com.termux/files/home";
+    if Path::new(TERMUX_HOME).is_dir() {
+        return PathBuf::from(TERMUX_HOME);
+    }
+
+    PathBuf::from(".")
 }
 
 fn download_with_progress(
